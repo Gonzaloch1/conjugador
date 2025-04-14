@@ -1,425 +1,444 @@
-<!DOCTYPE html>
-<html lang="es">
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Conjugador de Verbos Regulares</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
-    <style>
-        /* Estilo base para usar la fuente Inter */
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-        /* Estilos para las tablas de conjugación */
-        .conjugation-table th, .conjugation-table td {
-            border: 1px solid #e2e8f0; /* gray-200 */
-            padding: 0.5rem 0.75rem; /* py-2 px-3 */
-            text-align: left;
-        }
-        .conjugation-table th {
-            background-color: #f1f5f9; /* slate-100 */
-            font-weight: 500; /* medium */
-        }
-        /* Estilo para resaltar el verbo en el ejemplo */
-        .example-verb {
-            font-weight: 700; /* bold */
-            color: #4f46e5; /* indigo-600 */
-        }
-    </style>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="2575.5">
+  <style type="text/css">
+    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 14.7px Arial; -webkit-text-stroke: #000000}
+    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Times; -webkit-text-stroke: #000000; min-height: 14.0px}
+    span.s1 {font-kerning: none}
+  </style>
 </head>
-<body class="bg-gray-100 min-h-screen flex flex-col items-center pt-10 px-4">
-
-    <div class="w-full max-w-4xl bg-white rounded-lg shadow-md p-8">
-        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Conjugador de Verbos Regulares</h1>
-
-        <div class="mb-6 flex flex-col sm:flex-row items-center gap-4">
-            <input type="text" id="verbInput" placeholder="Escribe un verbo regular (ej: cantar)" class="flex-grow w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-150 ease-in-out">
-            <button id="conjugateButton" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-md transition duration-150 ease-in-out">
-                Conjugar
-            </button>
-        </div>
-
-        <div id="errorMessage" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md mb-6" role="alert">
-            <strong class="font-bold">¡Error!</strong>
-            <span class="block sm:inline" id="errorText"></span>
-        </div>
-
-        <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-8 rounded-md" role="alert">
-            <p class="font-bold">Nota Importante:</p>
-            <p>Este conjugador asume que el verbo ingresado es <span class="font-semibold">regular</span>. Los verbos irregulares (como 'ser', 'ir', 'tener', etc.) no se conjugarán correctamente.</p>
-        </div>
-
-        <div id="resultsArea" class="space-y-8 overflow-y-auto max-h-[70vh] pr-2">
-            </div>
-    </div>
-
-    <script>
-        // --- Elementos del DOM ---
-        const verbInput = document.getElementById('verbInput');
-        const conjugateButton = document.getElementById('conjugateButton');
-        const resultsArea = document.getElementById('resultsArea');
-        const errorMessage = document.getElementById('errorMessage');
-        const errorText = document.getElementById('errorText');
-
-        // --- Pronombres ---
-        const pronouns = {
-            indicative: ['yo', 'tú', 'él/ella/Ud.', 'nosotros/as', 'vosotros/as', 'ellos/ellas/Uds.'],
-            imperative: ['tú', 'Ud.', 'nosotros/as', 'vosotros/as', 'Uds.']
-        };
-
-        // --- Terminaciones Regulares ---
-        const endings = {
-            ar: {
-                presenteIndicativo: ['o', 'as', 'a', 'amos', 'áis', 'an'],
-                imperfectoIndicativo: ['aba', 'abas', 'aba', 'ábamos', 'abais', 'aban'],
-                preteritoIndicativo: ['é', 'aste', 'ó', 'amos', 'asteis', 'aron'],
-                futuroIndicativo: ['aré', 'arás', 'ará', 'aremos', 'aréis', 'arán'],
-                condicionalIndicativo: ['aría', 'arías', 'aría', 'aríamos', 'aríais', 'arían'],
-                presenteSubjuntivo: ['e', 'es', 'e', 'emos', 'éis', 'en'],
-                imperfectoSubjuntivoRa: ['ara', 'aras', 'ara', 'áramos', 'arais', 'aran'],
-                imperfectoSubjuntivoSe: ['ase', 'ases', 'ase', 'ásemos', 'aseis', 'asen'],
-                imperativoAfirmativo: ['a', 'e', 'emos', 'ad', 'en'], // tú, Ud., nosotros, vosotros, Uds.
-                imperativoNegativo: ['es', 'e', 'emos', 'éis', 'en'], // tú, Ud., nosotros, vosotros, Uds. (usa subjuntivo)
-                gerundio: 'ando',
-                participio: 'ado'
-            },
-            er: {
-                presenteIndicativo: ['o', 'es', 'e', 'emos', 'éis', 'en'],
-                imperfectoIndicativo: ['ía', 'ías', 'ía', 'íamos', 'íais', 'ían'],
-                preteritoIndicativo: ['í', 'iste', 'ió', 'imos', 'isteis', 'ieron'],
-                futuroIndicativo: ['eré', 'erás', 'erá', 'eremos', 'eréis', 'erán'],
-                condicionalIndicativo: ['ería', 'erías', 'ería', 'eríamos', 'eríais', 'erían'],
-                presenteSubjuntivo: ['a', 'as', 'a', 'amos', 'áis', 'an'],
-                imperfectoSubjuntivoRa: ['iera', 'ieras', 'iera', 'iéramos', 'ierais', 'ieran'],
-                imperfectoSubjuntivoSe: ['iese', 'ieses', 'iese', 'iésemos', 'ieseis', 'iesen'],
-                imperativoAfirmativo: ['e', 'a', 'amos', 'ed', 'an'],
-                imperativoNegativo: ['as', 'a', 'amos', 'áis', 'an'],
-                gerundio: 'iendo',
-                participio: 'ido'
-            },
-            ir: {
-                presenteIndicativo: ['o', 'es', 'e', 'imos', 'ís', 'en'],
-                imperfectoIndicativo: ['ía', 'ías', 'ía', 'íamos', 'íais', 'ían'],
-                preteritoIndicativo: ['í', 'iste', 'ió', 'imos', 'isteis', 'ieron'],
-                futuroIndicativo: ['iré', 'irás', 'irá', 'iremos', 'iréis', 'irán'],
-                condicionalIndicativo: ['iría', 'irías', 'iría', 'iríamos', 'iríais', 'irían'],
-                presenteSubjuntivo: ['a', 'as', 'a', 'amos', 'áis', 'an'],
-                imperfectoSubjuntivoRa: ['iera', 'ieras', 'iera', 'iéramos', 'ierais', 'ieran'],
-                imperfectoSubjuntivoSe: ['iese', 'ieses', 'iese', 'iésemos', 'ieseis', 'iesen'],
-                imperativoAfirmativo: ['e', 'a', 'amos', 'id', 'an'],
-                imperativoNegativo: ['as', 'a', 'amos', 'áis', 'an'],
-                gerundio: 'iendo',
-                participio: 'ido'
-            }
-        };
-
-        // --- Descripciones y Ejemplos (MEJORADOS) ---
-        // Nota: Las funciones de ejemplo ahora reciben la forma conjugada relevante
-        // y la insertan en una estructura de frase más genérica.
-        const descriptions = {
-             presenteIndicativo: {
-                title: "Presente de Indicativo",
-                description: "Se usa para hablar de acciones habituales, verdades generales, acciones que ocurren en el momento de hablar o acciones futuras cercanas.",
-                example: (conjugated) => `Yo <span class="example-verb">${conjugated}</span> ahora mismo.` // Ejemplo para 'yo'
-            },
-            imperfectoIndicativo: {
-                title: "Pretérito Imperfecto de Indicativo",
-                description: "Describe acciones pasadas habituales, descripciones en el pasado, o acciones en progreso en el pasado interrumpidas por otra.",
-                example: (conjugated) => `Antes, yo <span class="example-verb">${conjugated}</span> todos los días.` // Ejemplo para 'yo'
-            },
-            preteritoIndicativo: {
-                title: "Pretérito Perfecto Simple (Indefinido)",
-                description: "Expresa acciones completadas en un punto específico del pasado.",
-                example: (conjugated) => `Ayer, yo <span class="example-verb">${conjugated}</span>.` // Ejemplo para 'yo'
-            },
-            futuroIndicativo: {
-                title: "Futuro Simple de Indicativo",
-                description: "Indica acciones que ocurrirán en el futuro. También puede expresar probabilidad en el presente.",
-                example: (conjugated) => `Mañana, yo <span class="example-verb">${conjugated}</span>.` // Ejemplo para 'yo'
-            },
-            condicionalIndicativo: {
-                title: "Condicional Simple de Indicativo",
-                description: "Se usa para expresar deseos, hipótesis, consejos, o cortesía. También indica un futuro desde una perspectiva pasada.",
-                example: (conjugated) => `Yo <span class="example-verb">${conjugated}</span> si tuviera la oportunidad.` // Ejemplo para 'yo'
-            },
-            presenteSubjuntivo: {
-                title: "Presente de Subjuntivo",
-                description: "Expresa deseos, dudas, emociones, negación, o juicios de valor sobre una acción presente o futura.",
-                example: (conjugated) => `Es necesario que yo <span class="example-verb">${conjugated}</span>.` // Ejemplo para 'yo'
-            },
-            imperfectoSubjuntivoRa: {
-                title: "Pretérito Imperfecto de Subjuntivo (-ra)",
-                description: "Se usa en cláusulas subordinadas para expresar deseos, dudas, o condiciones hipotéticas en el pasado, o cortesía en el presente.",
-                example: (conjugated) => `Si yo <span class="example-verb">${conjugated}</span>, todo sería diferente.` // Ejemplo para 'yo'
-            },
-            imperfectoSubjuntivoSe: {
-                title: "Pretérito Imperfecto de Subjuntivo (-se)",
-                description: "Tiene los mismos usos que la forma -ra, siendo más común en lenguaje formal o literario en algunas regiones.",
-                example: (conjugated) => `No creía que yo <span class="example-verb">${conjugated}</span>.` // Ejemplo para 'yo'
-            },
-            imperativoAfirmativo: {
-                title: "Imperativo Afirmativo",
-                description: "Se usa para dar órdenes, instrucciones o consejos de forma directa.",
-                example: (conjugated) => `<span class="example-verb">${conjugated}</span> tú ahora, por favor.` // Ejemplo para 'tú'
-            },
-            imperativoNegativo: {
-                title: "Imperativo Negativo",
-                description: "Se usa para prohibir o dar órdenes negativas.",
-                // Nota: El ejemplo recibe la forma sin "no", que se añade en la tabla.
-                example: (conjugated) => `¡No <span class="example-verb">${conjugated}</span> tú!` // Ejemplo para 'tú'
-            },
-            infinitivo: {
-                title: "Infinitivo",
-                description: "Es la forma base del verbo, sin conjugar. Funciona como sustantivo en la oración.",
-                example: (verb) => `Es importante <span class="example-verb">${verb}</span> bien.` // Ejemplo con el infinitivo
-            },
-            gerundio: {
-                title: "Gerundio",
-                description: "Indica una acción en progreso. Se usa en tiempos continuos o como adverbio.",
-                example: (conjugated) => `Estoy <span class="example-verb">${conjugated}</span> en este momento.` // Ejemplo con el gerundio
-            },
-            participio: {
-                title: "Participio",
-                description: "Se usa para formar los tiempos compuestos (con 'haber') y la voz pasiva (con 'ser'). También funciona como adjetivo.",
-                example: (conjugated) => `Ya he <span class="example-verb">${conjugated}</span>.` // Ejemplo con el participio
-            }
-        };
-
-        // --- Funciones Auxiliares ---
-
-        /**
-         * Muestra un mensaje de error.
-         * @param {string} message - El mensaje a mostrar.
-         */
-        function showError(message) {
-            errorText.textContent = message;
-            errorMessage.classList.remove('hidden');
-            resultsArea.innerHTML = ''; // Limpia resultados previos
-        }
-
-        /**
-         * Oculta el mensaje de error.
-         */
-        function hideError() {
-            errorMessage.classList.add('hidden');
-        }
-
-        /**
-         * Valida el verbo ingresado.
-         * @param {string} verb - El verbo a validar.
-         * @returns {string|null} - La terminación ('ar', 'er', 'ir') o null si es inválido.
-         */
-        function validateVerb(verb) {
-            if (!verb) {
-                showError('El campo del verbo no puede estar vacío.');
-                return null;
-            }
-            verb = verb.toLowerCase().trim();
-            if (verb.endsWith('ar')) return 'ar';
-            if (verb.endsWith('er')) return 'er';
-            if (verb.endsWith('ir')) return 'ir';
-
-            showError('El verbo debe terminar en -ar, -er o -ir.');
-            return null;
-        }
-
-        /**
-         * Obtiene la raíz del verbo.
-         * @param {string} verb - El verbo en infinitivo.
-         * @returns {string} - La raíz del verbo.
-         */
-        function getStem(verb) {
-            return verb.slice(0, -2);
-        }
-
-        /**
-         * Conjuga un verbo para un tiempo/modo específico.
-         * @param {string} stem - La raíz del verbo.
-         * @param {string[]} tenseEndings - Las terminaciones para ese tiempo/modo.
-         * @returns {string[]} - Un array con las formas conjugadas.
-         */
-        function conjugate(stem, tenseEndings) {
-            // Asegurarse de que tenseEndings es un array
-             if (!Array.isArray(tenseEndings)) {
-                console.error("Error: tenseEndings no es un array para el stem:", stem);
-                return []; // Devuelve array vacío o maneja el error como prefieras
-            }
-            return tenseEndings.map(ending => stem + ending);
-        }
-
-        /**
-         * Crea el HTML para una tabla de conjugación.
-         * @param {string} title - Título de la tabla.
-         * @param {string[]} currentPronouns - Array de pronombres a usar.
-         * @param {string[]} conjugatedForms - Array de formas conjugadas.
-         * @param {string} description - Descripción del tiempo verbal.
-         * @param {string} example - Frase de ejemplo HTML.
-         * @returns {string} - El string HTML de la tabla y su descripción.
-         */
-        function createConjugationTableHTML(title, currentPronouns, conjugatedForms, description, example) {
-            let tableRows = '';
-            // Asegurarse de que ambos arrays tienen la misma longitud
-            const len = Math.min(currentPronouns.length, conjugatedForms.length);
-            for (let i = 0; i < len; i++) {
-                tableRows += `
-                    <tr>
-                        <td class="font-medium text-gray-600">${currentPronouns[i]}</td>
-                        <td class="text-gray-800">${conjugatedForms[i]}</td>
-                    </tr>
-                `;
-            }
-             // Si las longitudes no coinciden, podría ser útil registrar un aviso
-            if (currentPronouns.length !== conjugatedForms.length) {
-                console.warn(`Discrepancia en longitud para "${title}": ${currentPronouns.length} pronombres vs ${conjugatedForms.length} formas.`);
-            }
-
-
-            return `
-                <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                    <h3 class="text-xl font-semibold text-indigo-700 mb-3">${title}</h3>
-                    <p class="text-gray-600 mb-4 text-sm">${description}</p>
-                    <p class="text-gray-600 mb-4 text-sm italic">Ej: ${example}</p>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-sm conjugation-table">
-                            <thead>
-                                <tr>
-                                    <th>Pronombre</th>
-                                    <th>Forma Conjugada</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${tableRows}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            `;
-        }
-
-        /**
-         * Crea el HTML para las formas no personales.
-         * @param {string} verb - El verbo infinitivo.
-         * @param {string} gerund - El gerundio.
-         * @param {string} participle - El participio.
-         * @returns {string} - El string HTML para las formas no personales.
-         */
-        function createNonPersonalFormsHTML(verb, gerund, participle) {
-            const descInf = descriptions.infinitivo;
-            const descGer = descriptions.gerundio;
-            const descPar = descriptions.participio;
-
-            return `
-                <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                    <h3 class="text-xl font-semibold text-indigo-700 mb-3">${descInf.title}</h3>
-                    <p class="text-gray-600 mb-2 text-sm">${descInf.description}</p>
-                    <p class="text-gray-600 mb-4 text-sm italic">Ej: ${descInf.example(verb)}</p>
-                    <p class="text-lg text-gray-800 mb-4"><span class="font-medium">Forma:</span> ${verb}</p>
-
-                    <h3 class="text-xl font-semibold text-indigo-700 mb-3">${descGer.title}</h3>
-                     <p class="text-gray-600 mb-2 text-sm">${descGer.description}</p>
-                    <p class="text-gray-600 mb-4 text-sm italic">Ej: ${descGer.example(gerund)}</p>
-                    <p class="text-lg text-gray-800 mb-4"><span class="font-medium">Forma:</span> ${gerund}</p>
-
-                    <h3 class="text-xl font-semibold text-indigo-700 mb-3">${descPar.title}</h3>
-                     <p class="text-gray-600 mb-2 text-sm">${descPar.description}</p>
-                    <p class="text-gray-600 mb-4 text-sm italic">Ej: ${descPar.example(participle)}</p>
-                    <p class="text-lg text-gray-800"><span class="font-medium">Forma:</span> ${participle}</p>
-                </div>
-            `;
-        }
-
-
-        // --- Función Principal de Conjugación ---
-        function displayConjugations() {
-            hideError();
-            const verb = verbInput.value.toLowerCase().trim();
-            const endingType = validateVerb(verb);
-
-            if (!endingType) {
-                // El error ya se mostró en validateVerb
-                return;
-            }
-
-            const stem = getStem(verb);
-            const verbEndings = endings[endingType];
-            resultsArea.innerHTML = ''; // Limpia resultados anteriores
-
-            let htmlContent = `<h2 class="text-2xl font-semibold text-gray-700 mb-6 text-center">Conjugación de: <span class="text-indigo-600 font-bold">${verb}</span></h2>`;
-
-            // -- MODO INDICATIVO --
-            htmlContent += `<div class="mb-6"><h3 class="text-xl font-bold text-center text-gray-600 mb-4 pb-2 border-b border-gray-300">Modo Indicativo</h3><div class="space-y-6">`;
-            const indicativeTenses = [
-                'presenteIndicativo', 'imperfectoIndicativo', 'preteritoIndicativo',
-                'futuroIndicativo', 'condicionalIndicativo'
-            ];
-            indicativeTenses.forEach(tense => {
-                const conjugated = conjugate(stem, verbEndings[tense]);
-                const desc = descriptions[tense];
-                // Usar la primera persona (yo) para el ejemplo del indicativo
-                const exampleSentence = desc.example(conjugated[0]); // conjugated[0] es la forma 'yo'
-                htmlContent += createConjugationTableHTML(desc.title, pronouns.indicative, conjugated, desc.description, exampleSentence);
-            });
-            htmlContent += `</div></div>`;
-
-            // -- MODO SUBJUNTIVO --
-            htmlContent += `<div class="mb-6"><h3 class="text-xl font-bold text-center text-gray-600 mb-4 pb-2 border-b border-gray-300">Modo Subjuntivo</h3><div class="space-y-6">`;
-            const subjunctiveTenses = [
-                'presenteSubjuntivo', 'imperfectoSubjuntivoRa', 'imperfectoSubjuntivoSe'
-            ];
-            subjunctiveTenses.forEach(tense => {
-                const conjugated = conjugate(stem, verbEndings[tense]);
-                 const desc = descriptions[tense];
-                 // Usar la primera persona (yo) para el ejemplo del subjuntivo
-                const exampleSentence = desc.example(conjugated[0]); // conjugated[0] es la forma 'yo'
-                htmlContent += createConjugationTableHTML(desc.title, pronouns.indicative, conjugated, desc.description, exampleSentence);
-            });
-             htmlContent += `</div></div>`;
-
-            // -- MODO IMPERATIVO --
-            htmlContent += `<div class="mb-6"><h3 class="text-xl font-bold text-center text-gray-600 mb-4 pb-2 border-b border-gray-300">Modo Imperativo</h3><div class="space-y-6">`;
-            // Afirmativo
-            const imperativeAffirmative = conjugate(stem, verbEndings.imperativoAfirmativo);
-            const descAff = descriptions.imperativoAfirmativo;
-            // Usar la segunda persona (tú) para el ejemplo del imperativo afirmativo
-            const exampleAff = descAff.example(imperativeAffirmative[0]); // imperativeAffirmative[0] es la forma 'tú'
-            htmlContent += createConjugationTableHTML(descAff.title, pronouns.imperative, imperativeAffirmative, descAff.description, exampleAff);
-
-            // Negativo
-            // Conjugar primero las formas base (subjuntivo presente para negativo)
-            const imperativeNegativeBase = conjugate(stem, verbEndings.imperativoNegativo);
-            // Añadir "no" delante de cada forma para la tabla
-            const imperativeNegativeTable = imperativeNegativeBase.map(form => `no ${form}`);
-            const descNeg = descriptions.imperativoNegativo;
-             // Usar la segunda persona base (tú, sin "no") para el ejemplo del imperativo negativo
-            const exampleNeg = descNeg.example(imperativeNegativeBase[0]); // imperativeNegativeBase[0] es la forma 'tú' del subjuntivo presente
-            htmlContent += createConjugationTableHTML(descNeg.title, pronouns.imperative, imperativeNegativeTable, descNeg.description, exampleNeg);
-            htmlContent += `</div></div>`;
-
-
-            // -- FORMAS NO PERSONALES --
-             htmlContent += `<div class="mb-6"><h3 class="text-xl font-bold text-center text-gray-600 mb-4 pb-2 border-b border-gray-300">Formas no Personales</h3><div class="space-y-6">`;
-            const gerund = stem + verbEndings.gerundio;
-            const participle = stem + verbEndings.participio;
-            htmlContent += createNonPersonalFormsHTML(verb, gerund, participle);
-            htmlContent += `</div></div>`;
-
-
-            resultsArea.innerHTML = htmlContent;
-        }
-
-        // --- Event Listeners ---
-        conjugateButton.addEventListener('click', displayConjugations);
-        // Permite conjugar presionando Enter en el input
-        verbInput.addEventListener('keypress', function(event) {
-            if (event.key === 'Enter') {
-                displayConjugations();
-            }
-        });
-
-    </script>
-
+<body>
+<p class="p1"><span class="s1">&lt;!DOCTYPE html&gt;</span></p>
+<p class="p1"><span class="s1">&lt;html lang="es"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;head&gt;</span></p>
+<p class="p1"><span class="s1">    &lt;meta charset="UTF-8"&gt;</span></p>
+<p class="p1"><span class="s1">    &lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;</span></p>
+<p class="p1"><span class="s1">    &lt;title&gt;Conjugador de Verbos Regulares&lt;/title&gt;</span></p>
+<p class="p1"><span class="s1">    &lt;script src="https://cdn.tailwindcss.com"&gt;&lt;/script&gt;</span></p>
+<p class="p1"><span class="s1">    &lt;link rel="preconnect" href="https://fonts.googleapis.com"&gt;</span></p>
+<p class="p1"><span class="s1">    &lt;link rel="preconnect" href="https://fonts.gstatic.com" crossorigin&gt;</span></p>
+<p class="p1"><span class="s1">    &lt;link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&amp;display=swap" rel="stylesheet"&gt;</span></p>
+<p class="p1"><span class="s1">    &lt;style&gt;</span></p>
+<p class="p1"><span class="s1">        /* Estilo base para usar la fuente Inter */</span></p>
+<p class="p1"><span class="s1">        body {</span></p>
+<p class="p1"><span class="s1">            font-family: 'Inter', sans-serif;</span></p>
+<p class="p1"><span class="s1">        }</span></p>
+<p class="p1"><span class="s1">        /* Estilos para las tablas de conjugación */</span></p>
+<p class="p1"><span class="s1">        .conjugation-table th, .conjugation-table td {</span></p>
+<p class="p1"><span class="s1">            border: 1px solid #e2e8f0; /* gray-200 */</span></p>
+<p class="p1"><span class="s1">            padding: 0.5rem 0.75rem; /* py-2 px-3 */</span></p>
+<p class="p1"><span class="s1">            text-align: left;</span></p>
+<p class="p1"><span class="s1">        }</span></p>
+<p class="p1"><span class="s1">        .conjugation-table th {</span></p>
+<p class="p1"><span class="s1">            background-color: #f1f5f9; /* slate-100 */</span></p>
+<p class="p1"><span class="s1">            font-weight: 500; /* medium */</span></p>
+<p class="p1"><span class="s1">        }</span></p>
+<p class="p1"><span class="s1">        /* Estilo para resaltar el verbo en el ejemplo */</span></p>
+<p class="p1"><span class="s1">        .example-verb {</span></p>
+<p class="p1"><span class="s1">            font-weight: 700; /* bold */</span></p>
+<p class="p1"><span class="s1">            color: #4f46e5; /* indigo-600 */</span></p>
+<p class="p1"><span class="s1">        }</span></p>
+<p class="p1"><span class="s1">    &lt;/style&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/head&gt;</span></p>
+<p class="p1"><span class="s1">&lt;body class="bg-gray-100 min-h-screen flex flex-col items-center pt-10 px-4"&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">    &lt;div class="w-full max-w-4xl bg-white rounded-lg shadow-md p-8"&gt;</span></p>
+<p class="p1"><span class="s1">        &lt;h1 class="text-3xl font-bold text-center text-gray-800 mb-6"&gt;Conjugador de Verbos Regulares&lt;/h1&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">        &lt;div class="mb-6 flex flex-col sm:flex-row items-center gap-4"&gt;</span></p>
+<p class="p1"><span class="s1">            &lt;input type="text" id="verbInput" placeholder="Escribe un verbo regular (ej: cantar)" class="flex-grow w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-150 ease-in-out"&gt;</span></p>
+<p class="p1"><span class="s1">            &lt;button id="conjugateButton" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-md transition duration-150 ease-in-out"&gt;</span></p>
+<p class="p1"><span class="s1">                Conjugar</span></p>
+<p class="p1"><span class="s1">            &lt;/button&gt;</span></p>
+<p class="p1"><span class="s1">        &lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">        &lt;div id="errorMessage" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md mb-6" role="alert"&gt;</span></p>
+<p class="p1"><span class="s1">            &lt;strong class="font-bold"&gt;¡Error!&lt;/strong&gt;</span></p>
+<p class="p1"><span class="s1">            &lt;span class="block sm:inline" id="errorText"&gt;&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1">        &lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">        &lt;div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-8 rounded-md" role="alert"&gt;</span></p>
+<p class="p1"><span class="s1">            &lt;p class="font-bold"&gt;Nota Importante:&lt;/p&gt;</span></p>
+<p class="p1"><span class="s1">            &lt;p&gt;Este conjugador asume que el verbo ingresado es &lt;span class="font-semibold"&gt;regular&lt;/span&gt;. Los verbos irregulares (como 'ser', 'ir', 'tener', etc.) no se conjugarán correctamente.&lt;/p&gt;</span></p>
+<p class="p1"><span class="s1">        &lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">        &lt;div id="resultsArea" class="space-y-8 overflow-y-auto max-h-[70vh] pr-2"&gt;</span></p>
+<p class="p1"><span class="s1">            &lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">    &lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">    &lt;script&gt;</span></p>
+<p class="p1"><span class="s1">        // --- Elementos del DOM ---</span></p>
+<p class="p1"><span class="s1">        const verbInput = document.getElementById('verbInput');</span></p>
+<p class="p1"><span class="s1">        const conjugateButton = document.getElementById('conjugateButton');</span></p>
+<p class="p1"><span class="s1">        const resultsArea = document.getElementById('resultsArea');</span></p>
+<p class="p1"><span class="s1">        const errorMessage = document.getElementById('errorMessage');</span></p>
+<p class="p1"><span class="s1">        const errorText = document.getElementById('errorText');</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">        // --- Pronombres ---</span></p>
+<p class="p1"><span class="s1">        const pronouns = {</span></p>
+<p class="p1"><span class="s1">            indicative: ['yo', 'tú', 'él/ella/Ud.', 'nosotros/as', 'vosotros/as', 'ellos/ellas/Uds.'],</span></p>
+<p class="p1"><span class="s1">            imperative: ['tú', 'Ud.', 'nosotros/as', 'vosotros/as', 'Uds.']</span></p>
+<p class="p1"><span class="s1">        };</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">        // --- Terminaciones Regulares ---</span></p>
+<p class="p1"><span class="s1">        const endings = {</span></p>
+<p class="p1"><span class="s1">            ar: {</span></p>
+<p class="p1"><span class="s1">                presenteIndicativo: ['o', 'as', 'a', 'amos', 'áis', 'an'],</span></p>
+<p class="p1"><span class="s1">                imperfectoIndicativo: ['aba', 'abas', 'aba', 'ábamos', 'abais', 'aban'],</span></p>
+<p class="p1"><span class="s1">                preteritoIndicativo: ['é', 'aste', 'ó', 'amos', 'asteis', 'aron'],</span></p>
+<p class="p1"><span class="s1">                futuroIndicativo: ['aré', 'arás', 'ará', 'aremos', 'aréis', 'arán'],</span></p>
+<p class="p1"><span class="s1">                condicionalIndicativo: ['aría', 'arías', 'aría', 'aríamos', 'aríais', 'arían'],</span></p>
+<p class="p1"><span class="s1">                presenteSubjuntivo: ['e', 'es', 'e', 'emos', 'éis', 'en'],</span></p>
+<p class="p1"><span class="s1">                imperfectoSubjuntivoRa: ['ara', 'aras', 'ara', 'áramos', 'arais', 'aran'],</span></p>
+<p class="p1"><span class="s1">                imperfectoSubjuntivoSe: ['ase', 'ases', 'ase', 'ásemos', 'aseis', 'asen'],</span></p>
+<p class="p1"><span class="s1">                imperativoAfirmativo: ['a', 'e', 'emos', 'ad', 'en'], // tú, Ud., nosotros, vosotros, Uds.</span></p>
+<p class="p1"><span class="s1">                imperativoNegativo: ['es', 'e', 'emos', 'éis', 'en'], // tú, Ud., nosotros, vosotros, Uds. (usa subjuntivo)</span></p>
+<p class="p1"><span class="s1">                gerundio: 'ando',</span></p>
+<p class="p1"><span class="s1">                participio: 'ado'</span></p>
+<p class="p1"><span class="s1">            },</span></p>
+<p class="p1"><span class="s1">            er: {</span></p>
+<p class="p1"><span class="s1">                presenteIndicativo: ['o', 'es', 'e', 'emos', 'éis', 'en'],</span></p>
+<p class="p1"><span class="s1">                imperfectoIndicativo: ['ía', 'ías', 'ía', 'íamos', 'íais', 'ían'],</span></p>
+<p class="p1"><span class="s1">                preteritoIndicativo: ['í', 'iste', 'ió', 'imos', 'isteis', 'ieron'],</span></p>
+<p class="p1"><span class="s1">                futuroIndicativo: ['eré', 'erás', 'erá', 'eremos', 'eréis', 'erán'],</span></p>
+<p class="p1"><span class="s1">                condicionalIndicativo: ['ería', 'erías', 'ería', 'eríamos', 'eríais', 'erían'],</span></p>
+<p class="p1"><span class="s1">                presenteSubjuntivo: ['a', 'as', 'a', 'amos', 'áis', 'an'],</span></p>
+<p class="p1"><span class="s1">                imperfectoSubjuntivoRa: ['iera', 'ieras', 'iera', 'iéramos', 'ierais', 'ieran'],</span></p>
+<p class="p1"><span class="s1">                imperfectoSubjuntivoSe: ['iese', 'ieses', 'iese', 'iésemos', 'ieseis', 'iesen'],</span></p>
+<p class="p1"><span class="s1">                imperativoAfirmativo: ['e', 'a', 'amos', 'ed', 'an'],</span></p>
+<p class="p1"><span class="s1">                imperativoNegativo: ['as', 'a', 'amos', 'áis', 'an'],</span></p>
+<p class="p1"><span class="s1">                gerundio: 'iendo',</span></p>
+<p class="p1"><span class="s1">                participio: 'ido'</span></p>
+<p class="p1"><span class="s1">            },</span></p>
+<p class="p1"><span class="s1">            ir: {</span></p>
+<p class="p1"><span class="s1">                presenteIndicativo: ['o', 'es', 'e', 'imos', 'ís', 'en'],</span></p>
+<p class="p1"><span class="s1">                imperfectoIndicativo: ['ía', 'ías', 'ía', 'íamos', 'íais', 'ían'],</span></p>
+<p class="p1"><span class="s1">                preteritoIndicativo: ['í', 'iste', 'ió', 'imos', 'isteis', 'ieron'],</span></p>
+<p class="p1"><span class="s1">                futuroIndicativo: ['iré', 'irás', 'irá', 'iremos', 'iréis', 'irán'],</span></p>
+<p class="p1"><span class="s1">                condicionalIndicativo: ['iría', 'irías', 'iría', 'iríamos', 'iríais', 'irían'],</span></p>
+<p class="p1"><span class="s1">                presenteSubjuntivo: ['a', 'as', 'a', 'amos', 'áis', 'an'],</span></p>
+<p class="p1"><span class="s1">                imperfectoSubjuntivoRa: ['iera', 'ieras', 'iera', 'iéramos', 'ierais', 'ieran'],</span></p>
+<p class="p1"><span class="s1">                imperfectoSubjuntivoSe: ['iese', 'ieses', 'iese', 'iésemos', 'ieseis', 'iesen'],</span></p>
+<p class="p1"><span class="s1">                imperativoAfirmativo: ['e', 'a', 'amos', 'id', 'an'],</span></p>
+<p class="p1"><span class="s1">                imperativoNegativo: ['as', 'a', 'amos', 'áis', 'an'],</span></p>
+<p class="p1"><span class="s1">                gerundio: 'iendo',</span></p>
+<p class="p1"><span class="s1">                participio: 'ido'</span></p>
+<p class="p1"><span class="s1">            }</span></p>
+<p class="p1"><span class="s1">        };</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">        // --- Descripciones y Ejemplos (MEJORADOS) ---</span></p>
+<p class="p1"><span class="s1">        // Nota: Las funciones de ejemplo ahora reciben la forma conjugada relevante</span></p>
+<p class="p1"><span class="s1">        // y la insertan en una estructura de frase más genérica.</span></p>
+<p class="p1"><span class="s1">        const descriptions = {</span></p>
+<p class="p1"><span class="s1">             presenteIndicativo: {</span></p>
+<p class="p1"><span class="s1">                title: "Presente de Indicativo",</span></p>
+<p class="p1"><span class="s1">                description: "Se usa para hablar de acciones habituales, verdades generales, acciones que ocurren en el momento de hablar o acciones futuras cercanas.",</span></p>
+<p class="p1"><span class="s1">                example: (conjugated) =&gt; `Yo &lt;span class="example-verb"&gt;${conjugated}&lt;/span&gt; ahora mismo.` // Ejemplo para 'yo'</span></p>
+<p class="p1"><span class="s1">            },</span></p>
+<p class="p1"><span class="s1">            imperfectoIndicativo: {</span></p>
+<p class="p1"><span class="s1">                title: "Pretérito Imperfecto de Indicativo",</span></p>
+<p class="p1"><span class="s1">                description: "Describe acciones pasadas habituales, descripciones en el pasado, o acciones en progreso en el pasado interrumpidas por otra.",</span></p>
+<p class="p1"><span class="s1">                example: (conjugated) =&gt; `Antes, yo &lt;span class="example-verb"&gt;${conjugated}&lt;/span&gt; todos los días.` // Ejemplo para 'yo'</span></p>
+<p class="p1"><span class="s1">            },</span></p>
+<p class="p1"><span class="s1">            preteritoIndicativo: {</span></p>
+<p class="p1"><span class="s1">                title: "Pretérito Perfecto Simple (Indefinido)",</span></p>
+<p class="p1"><span class="s1">                description: "Expresa acciones completadas en un punto específico del pasado.",</span></p>
+<p class="p1"><span class="s1">                example: (conjugated) =&gt; `Ayer, yo &lt;span class="example-verb"&gt;${conjugated}&lt;/span&gt;.` // Ejemplo para 'yo'</span></p>
+<p class="p1"><span class="s1">            },</span></p>
+<p class="p1"><span class="s1">            futuroIndicativo: {</span></p>
+<p class="p1"><span class="s1">                title: "Futuro Simple de Indicativo",</span></p>
+<p class="p1"><span class="s1">                description: "Indica acciones que ocurrirán en el futuro. También puede expresar probabilidad en el presente.",</span></p>
+<p class="p1"><span class="s1">                example: (conjugated) =&gt; `Mañana, yo &lt;span class="example-verb"&gt;${conjugated}&lt;/span&gt;.` // Ejemplo para 'yo'</span></p>
+<p class="p1"><span class="s1">            },</span></p>
+<p class="p1"><span class="s1">            condicionalIndicativo: {</span></p>
+<p class="p1"><span class="s1">                title: "Condicional Simple de Indicativo",</span></p>
+<p class="p1"><span class="s1">                description: "Se usa para expresar deseos, hipótesis, consejos, o cortesía. También indica un futuro desde una perspectiva pasada.",</span></p>
+<p class="p1"><span class="s1">                example: (conjugated) =&gt; `Yo &lt;span class="example-verb"&gt;${conjugated}&lt;/span&gt; si tuviera la oportunidad.` // Ejemplo para 'yo'</span></p>
+<p class="p1"><span class="s1">            },</span></p>
+<p class="p1"><span class="s1">            presenteSubjuntivo: {</span></p>
+<p class="p1"><span class="s1">                title: "Presente de Subjuntivo",</span></p>
+<p class="p1"><span class="s1">                description: "Expresa deseos, dudas, emociones, negación, o juicios de valor sobre una acción presente o futura.",</span></p>
+<p class="p1"><span class="s1">                example: (conjugated) =&gt; `Es necesario que yo &lt;span class="example-verb"&gt;${conjugated}&lt;/span&gt;.` // Ejemplo para 'yo'</span></p>
+<p class="p1"><span class="s1">            },</span></p>
+<p class="p1"><span class="s1">            imperfectoSubjuntivoRa: {</span></p>
+<p class="p1"><span class="s1">                title: "Pretérito Imperfecto de Subjuntivo (-ra)",</span></p>
+<p class="p1"><span class="s1">                description: "Se usa en cláusulas subordinadas para expresar deseos, dudas, o condiciones hipotéticas en el pasado, o cortesía en el presente.",</span></p>
+<p class="p1"><span class="s1">                example: (conjugated) =&gt; `Si yo &lt;span class="example-verb"&gt;${conjugated}&lt;/span&gt;, todo sería diferente.` // Ejemplo para 'yo'</span></p>
+<p class="p1"><span class="s1">            },</span></p>
+<p class="p1"><span class="s1">            imperfectoSubjuntivoSe: {</span></p>
+<p class="p1"><span class="s1">                title: "Pretérito Imperfecto de Subjuntivo (-se)",</span></p>
+<p class="p1"><span class="s1">                description: "Tiene los mismos usos que la forma -ra, siendo más común en lenguaje formal o literario en algunas regiones.",</span></p>
+<p class="p1"><span class="s1">                example: (conjugated) =&gt; `No creía que yo &lt;span class="example-verb"&gt;${conjugated}&lt;/span&gt;.` // Ejemplo para 'yo'</span></p>
+<p class="p1"><span class="s1">            },</span></p>
+<p class="p1"><span class="s1">            imperativoAfirmativo: {</span></p>
+<p class="p1"><span class="s1">                title: "Imperativo Afirmativo",</span></p>
+<p class="p1"><span class="s1">                description: "Se usa para dar órdenes, instrucciones o consejos de forma directa.",</span></p>
+<p class="p1"><span class="s1">                example: (conjugated) =&gt; `&lt;span class="example-verb"&gt;${conjugated}&lt;/span&gt; tú ahora, por favor.` // Ejemplo para 'tú'</span></p>
+<p class="p1"><span class="s1">            },</span></p>
+<p class="p1"><span class="s1">            imperativoNegativo: {</span></p>
+<p class="p1"><span class="s1">                title: "Imperativo Negativo",</span></p>
+<p class="p1"><span class="s1">                description: "Se usa para prohibir o dar órdenes negativas.",</span></p>
+<p class="p1"><span class="s1">                // Nota: El ejemplo recibe la forma sin "no", que se añade en la tabla.</span></p>
+<p class="p1"><span class="s1">                example: (conjugated) =&gt; `¡No &lt;span class="example-verb"&gt;${conjugated}&lt;/span&gt; tú!` // Ejemplo para 'tú'</span></p>
+<p class="p1"><span class="s1">            },</span></p>
+<p class="p1"><span class="s1">            infinitivo: {</span></p>
+<p class="p1"><span class="s1">                title: "Infinitivo",</span></p>
+<p class="p1"><span class="s1">                description: "Es la forma base del verbo, sin conjugar. Funciona como sustantivo en la oración.",</span></p>
+<p class="p1"><span class="s1">                example: (verb) =&gt; `Es importante &lt;span class="example-verb"&gt;${verb}&lt;/span&gt; bien.` // Ejemplo con el infinitivo</span></p>
+<p class="p1"><span class="s1">            },</span></p>
+<p class="p1"><span class="s1">            gerundio: {</span></p>
+<p class="p1"><span class="s1">                title: "Gerundio",</span></p>
+<p class="p1"><span class="s1">                description: "Indica una acción en progreso. Se usa en tiempos continuos o como adverbio.",</span></p>
+<p class="p1"><span class="s1">                example: (conjugated) =&gt; `Estoy &lt;span class="example-verb"&gt;${conjugated}&lt;/span&gt; en este momento.` // Ejemplo con el gerundio</span></p>
+<p class="p1"><span class="s1">            },</span></p>
+<p class="p1"><span class="s1">            participio: {</span></p>
+<p class="p1"><span class="s1">                title: "Participio",</span></p>
+<p class="p1"><span class="s1">                description: "Se usa para formar los tiempos compuestos (con 'haber') y la voz pasiva (con 'ser'). También funciona como adjetivo.",</span></p>
+<p class="p1"><span class="s1">                example: (conjugated) =&gt; `Ya he &lt;span class="example-verb"&gt;${conjugated}&lt;/span&gt;.` // Ejemplo con el participio</span></p>
+<p class="p1"><span class="s1">            }</span></p>
+<p class="p1"><span class="s1">        };</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">        // --- Funciones Auxiliares ---</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">        /**</span></p>
+<p class="p1"><span class="s1">         * Muestra un mensaje de error.</span></p>
+<p class="p1"><span class="s1">         * @param {string} message - El mensaje a mostrar.</span></p>
+<p class="p1"><span class="s1">         */</span></p>
+<p class="p1"><span class="s1">        function showError(message) {</span></p>
+<p class="p1"><span class="s1">            errorText.textContent = message;</span></p>
+<p class="p1"><span class="s1">            errorMessage.classList.remove('hidden');</span></p>
+<p class="p1"><span class="s1">            resultsArea.innerHTML = ''; // Limpia resultados previos</span></p>
+<p class="p1"><span class="s1">        }</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">        /**</span></p>
+<p class="p1"><span class="s1">         * Oculta el mensaje de error.</span></p>
+<p class="p1"><span class="s1">         */</span></p>
+<p class="p1"><span class="s1">        function hideError() {</span></p>
+<p class="p1"><span class="s1">            errorMessage.classList.add('hidden');</span></p>
+<p class="p1"><span class="s1">        }</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">        /**</span></p>
+<p class="p1"><span class="s1">         * Valida el verbo ingresado.</span></p>
+<p class="p1"><span class="s1">         * @param {string} verb - El verbo a validar.</span></p>
+<p class="p1"><span class="s1">         * @returns {string|null} - La terminación ('ar', 'er', 'ir') o null si es inválido.</span></p>
+<p class="p1"><span class="s1">         */</span></p>
+<p class="p1"><span class="s1">        function validateVerb(verb) {</span></p>
+<p class="p1"><span class="s1">            if (!verb) {</span></p>
+<p class="p1"><span class="s1">                showError('El campo del verbo no puede estar vacío.');</span></p>
+<p class="p1"><span class="s1">                return null;</span></p>
+<p class="p1"><span class="s1">            }</span></p>
+<p class="p1"><span class="s1">            verb = verb.toLowerCase().trim();</span></p>
+<p class="p1"><span class="s1">            if (verb.endsWith('ar')) return 'ar';</span></p>
+<p class="p1"><span class="s1">            if (verb.endsWith('er')) return 'er';</span></p>
+<p class="p1"><span class="s1">            if (verb.endsWith('ir')) return 'ir';</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">            showError('El verbo debe terminar en -ar, -er o -ir.');</span></p>
+<p class="p1"><span class="s1">            return null;</span></p>
+<p class="p1"><span class="s1">        }</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">        /**</span></p>
+<p class="p1"><span class="s1">         * Obtiene la raíz del verbo.</span></p>
+<p class="p1"><span class="s1">         * @param {string} verb - El verbo en infinitivo.</span></p>
+<p class="p1"><span class="s1">         * @returns {string} - La raíz del verbo.</span></p>
+<p class="p1"><span class="s1">         */</span></p>
+<p class="p1"><span class="s1">        function getStem(verb) {</span></p>
+<p class="p1"><span class="s1">            return verb.slice(0, -2);</span></p>
+<p class="p1"><span class="s1">        }</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">        /**</span></p>
+<p class="p1"><span class="s1">         * Conjuga un verbo para un tiempo/modo específico.</span></p>
+<p class="p1"><span class="s1">         * @param {string} stem - La raíz del verbo.</span></p>
+<p class="p1"><span class="s1">         * @param {string[]} tenseEndings - Las terminaciones para ese tiempo/modo.</span></p>
+<p class="p1"><span class="s1">         * @returns {string[]} - Un array con las formas conjugadas.</span></p>
+<p class="p1"><span class="s1">         */</span></p>
+<p class="p1"><span class="s1">        function conjugate(stem, tenseEndings) {</span></p>
+<p class="p1"><span class="s1">            // Asegurarse de que tenseEndings es un array</span></p>
+<p class="p1"><span class="s1">             if (!Array.isArray(tenseEndings)) {</span></p>
+<p class="p1"><span class="s1">                console.error("Error: tenseEndings no es un array para el stem:", stem);</span></p>
+<p class="p1"><span class="s1">                return []; // Devuelve array vacío o maneja el error como prefieras</span></p>
+<p class="p1"><span class="s1">            }</span></p>
+<p class="p1"><span class="s1">            return tenseEndings.map(ending =&gt; stem + ending);</span></p>
+<p class="p1"><span class="s1">        }</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">        /**</span></p>
+<p class="p1"><span class="s1">         * Crea el HTML para una tabla de conjugación.</span></p>
+<p class="p1"><span class="s1">         * @param {string} title - Título de la tabla.</span></p>
+<p class="p1"><span class="s1">         * @param {string[]} currentPronouns - Array de pronombres a usar.</span></p>
+<p class="p1"><span class="s1">         * @param {string[]} conjugatedForms - Array de formas conjugadas.</span></p>
+<p class="p1"><span class="s1">         * @param {string} description - Descripción del tiempo verbal.</span></p>
+<p class="p1"><span class="s1">         * @param {string} example - Frase de ejemplo HTML.</span></p>
+<p class="p1"><span class="s1">         * @returns {string} - El string HTML de la tabla y su descripción.</span></p>
+<p class="p1"><span class="s1">         */</span></p>
+<p class="p1"><span class="s1">        function createConjugationTableHTML(title, currentPronouns, conjugatedForms, description, example) {</span></p>
+<p class="p1"><span class="s1">            let tableRows = '';</span></p>
+<p class="p1"><span class="s1">            // Asegurarse de que ambos arrays tienen la misma longitud</span></p>
+<p class="p1"><span class="s1">            const len = Math.min(currentPronouns.length, conjugatedForms.length);</span></p>
+<p class="p1"><span class="s1">            for (let i = 0; i &lt; len; i++) {</span></p>
+<p class="p1"><span class="s1">                tableRows += `</span></p>
+<p class="p1"><span class="s1">                    &lt;tr&gt;</span></p>
+<p class="p1"><span class="s1">                        &lt;td class="font-medium text-gray-600"&gt;${currentPronouns[i]}&lt;/td&gt;</span></p>
+<p class="p1"><span class="s1">                        &lt;td class="text-gray-800"&gt;${conjugatedForms[i]}&lt;/td&gt;</span></p>
+<p class="p1"><span class="s1">                    &lt;/tr&gt;</span></p>
+<p class="p1"><span class="s1">                `;</span></p>
+<p class="p1"><span class="s1">            }</span></p>
+<p class="p1"><span class="s1">             // Si las longitudes no coinciden, podría ser útil registrar un aviso</span></p>
+<p class="p1"><span class="s1">            if (currentPronouns.length !== conjugatedForms.length) {</span></p>
+<p class="p1"><span class="s1">                console.warn(`Discrepancia en longitud para "${title}": ${currentPronouns.length} pronombres vs ${conjugatedForms.length} formas.`);</span></p>
+<p class="p1"><span class="s1">            }</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">            return `</span></p>
+<p class="p1"><span class="s1">                &lt;div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200"&gt;</span></p>
+<p class="p1"><span class="s1">                    &lt;h3 class="text-xl font-semibold text-indigo-700 mb-3"&gt;${title}&lt;/h3&gt;</span></p>
+<p class="p1"><span class="s1">                    &lt;p class="text-gray-600 mb-4 text-sm"&gt;${description}&lt;/p&gt;</span></p>
+<p class="p1"><span class="s1">                    &lt;p class="text-gray-600 mb-4 text-sm italic"&gt;Ej: ${example}&lt;/p&gt;</span></p>
+<p class="p1"><span class="s1">                    &lt;div class="overflow-x-auto"&gt;</span></p>
+<p class="p1"><span class="s1">                        &lt;table class="w-full text-sm conjugation-table"&gt;</span></p>
+<p class="p1"><span class="s1">                            &lt;thead&gt;</span></p>
+<p class="p1"><span class="s1">                                &lt;tr&gt;</span></p>
+<p class="p1"><span class="s1">                                    &lt;th&gt;Pronombre&lt;/th&gt;</span></p>
+<p class="p1"><span class="s1">                                    &lt;th&gt;Forma Conjugada&lt;/th&gt;</span></p>
+<p class="p1"><span class="s1">                                &lt;/tr&gt;</span></p>
+<p class="p1"><span class="s1">                            &lt;/thead&gt;</span></p>
+<p class="p1"><span class="s1">                            &lt;tbody&gt;</span></p>
+<p class="p1"><span class="s1">                                ${tableRows}</span></p>
+<p class="p1"><span class="s1">                            &lt;/tbody&gt;</span></p>
+<p class="p1"><span class="s1">                        &lt;/table&gt;</span></p>
+<p class="p1"><span class="s1">                    &lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">                &lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">            `;</span></p>
+<p class="p1"><span class="s1">        }</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">        /**</span></p>
+<p class="p1"><span class="s1">         * Crea el HTML para las formas no personales.</span></p>
+<p class="p1"><span class="s1">         * @param {string} verb - El verbo infinitivo.</span></p>
+<p class="p1"><span class="s1">         * @param {string} gerund - El gerundio.</span></p>
+<p class="p1"><span class="s1">         * @param {string} participle - El participio.</span></p>
+<p class="p1"><span class="s1">         * @returns {string} - El string HTML para las formas no personales.</span></p>
+<p class="p1"><span class="s1">         */</span></p>
+<p class="p1"><span class="s1">        function createNonPersonalFormsHTML(verb, gerund, participle) {</span></p>
+<p class="p1"><span class="s1">            const descInf = descriptions.infinitivo;</span></p>
+<p class="p1"><span class="s1">            const descGer = descriptions.gerundio;</span></p>
+<p class="p1"><span class="s1">            const descPar = descriptions.participio;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">            return `</span></p>
+<p class="p1"><span class="s1">                &lt;div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200"&gt;</span></p>
+<p class="p1"><span class="s1">                    &lt;h3 class="text-xl font-semibold text-indigo-700 mb-3"&gt;${descInf.title}&lt;/h3&gt;</span></p>
+<p class="p1"><span class="s1">                    &lt;p class="text-gray-600 mb-2 text-sm"&gt;${descInf.description}&lt;/p&gt;</span></p>
+<p class="p1"><span class="s1">                    &lt;p class="text-gray-600 mb-4 text-sm italic"&gt;Ej: ${descInf.example(verb)}&lt;/p&gt;</span></p>
+<p class="p1"><span class="s1">                    &lt;p class="text-lg text-gray-800 mb-4"&gt;&lt;span class="font-medium"&gt;Forma:&lt;/span&gt; ${verb}&lt;/p&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">                    &lt;h3 class="text-xl font-semibold text-indigo-700 mb-3"&gt;${descGer.title}&lt;/h3&gt;</span></p>
+<p class="p1"><span class="s1">                     &lt;p class="text-gray-600 mb-2 text-sm"&gt;${descGer.description}&lt;/p&gt;</span></p>
+<p class="p1"><span class="s1">                    &lt;p class="text-gray-600 mb-4 text-sm italic"&gt;Ej: ${descGer.example(gerund)}&lt;/p&gt;</span></p>
+<p class="p1"><span class="s1">                    &lt;p class="text-lg text-gray-800 mb-4"&gt;&lt;span class="font-medium"&gt;Forma:&lt;/span&gt; ${gerund}&lt;/p&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">                    &lt;h3 class="text-xl font-semibold text-indigo-700 mb-3"&gt;${descPar.title}&lt;/h3&gt;</span></p>
+<p class="p1"><span class="s1">                     &lt;p class="text-gray-600 mb-2 text-sm"&gt;${descPar.description}&lt;/p&gt;</span></p>
+<p class="p1"><span class="s1">                    &lt;p class="text-gray-600 mb-4 text-sm italic"&gt;Ej: ${descPar.example(participle)}&lt;/p&gt;</span></p>
+<p class="p1"><span class="s1">                    &lt;p class="text-lg text-gray-800"&gt;&lt;span class="font-medium"&gt;Forma:&lt;/span&gt; ${participle}&lt;/p&gt;</span></p>
+<p class="p1"><span class="s1">                &lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">            `;</span></p>
+<p class="p1"><span class="s1">        }</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">        // --- Función Principal de Conjugación ---</span></p>
+<p class="p1"><span class="s1">        function displayConjugations() {</span></p>
+<p class="p1"><span class="s1">            hideError();</span></p>
+<p class="p1"><span class="s1">            const verb = verbInput.value.toLowerCase().trim();</span></p>
+<p class="p1"><span class="s1">            const endingType = validateVerb(verb);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">            if (!endingType) {</span></p>
+<p class="p1"><span class="s1">                // El error ya se mostró en validateVerb</span></p>
+<p class="p1"><span class="s1">                return;</span></p>
+<p class="p1"><span class="s1">            }</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">            const stem = getStem(verb);</span></p>
+<p class="p1"><span class="s1">            const verbEndings = endings[endingType];</span></p>
+<p class="p1"><span class="s1">            resultsArea.innerHTML = ''; // Limpia resultados anteriores</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">            let htmlContent = `&lt;h2 class="text-2xl font-semibold text-gray-700 mb-6 text-center"&gt;Conjugación de: &lt;span class="text-indigo-600 font-bold"&gt;${verb}&lt;/span&gt;&lt;/h2&gt;`;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">            // -- MODO INDICATIVO --</span></p>
+<p class="p1"><span class="s1">            htmlContent += `&lt;div class="mb-6"&gt;&lt;h3 class="text-xl font-bold text-center text-gray-600 mb-4 pb-2 border-b border-gray-300"&gt;Modo Indicativo&lt;/h3&gt;&lt;div class="space-y-6"&gt;`;</span></p>
+<p class="p1"><span class="s1">            const indicativeTenses = [</span></p>
+<p class="p1"><span class="s1">                'presenteIndicativo', 'imperfectoIndicativo', 'preteritoIndicativo',</span></p>
+<p class="p1"><span class="s1">                'futuroIndicativo', 'condicionalIndicativo'</span></p>
+<p class="p1"><span class="s1">            ];</span></p>
+<p class="p1"><span class="s1">            indicativeTenses.forEach(tense =&gt; {</span></p>
+<p class="p1"><span class="s1">                const conjugated = conjugate(stem, verbEndings[tense]);</span></p>
+<p class="p1"><span class="s1">                const desc = descriptions[tense];</span></p>
+<p class="p1"><span class="s1">                // Usar la primera persona (yo) para el ejemplo del indicativo</span></p>
+<p class="p1"><span class="s1">                const exampleSentence = desc.example(conjugated[0]); // conjugated[0] es la forma 'yo'</span></p>
+<p class="p1"><span class="s1">                htmlContent += createConjugationTableHTML(desc.title, pronouns.indicative, conjugated, desc.description, exampleSentence);</span></p>
+<p class="p1"><span class="s1">            });</span></p>
+<p class="p1"><span class="s1">            htmlContent += `&lt;/div&gt;&lt;/div&gt;`;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">            // -- MODO SUBJUNTIVO --</span></p>
+<p class="p1"><span class="s1">            htmlContent += `&lt;div class="mb-6"&gt;&lt;h3 class="text-xl font-bold text-center text-gray-600 mb-4 pb-2 border-b border-gray-300"&gt;Modo Subjuntivo&lt;/h3&gt;&lt;div class="space-y-6"&gt;`;</span></p>
+<p class="p1"><span class="s1">            const subjunctiveTenses = [</span></p>
+<p class="p1"><span class="s1">                'presenteSubjuntivo', 'imperfectoSubjuntivoRa', 'imperfectoSubjuntivoSe'</span></p>
+<p class="p1"><span class="s1">            ];</span></p>
+<p class="p1"><span class="s1">            subjunctiveTenses.forEach(tense =&gt; {</span></p>
+<p class="p1"><span class="s1">                const conjugated = conjugate(stem, verbEndings[tense]);</span></p>
+<p class="p1"><span class="s1">                 const desc = descriptions[tense];</span></p>
+<p class="p1"><span class="s1">                 // Usar la primera persona (yo) para el ejemplo del subjuntivo</span></p>
+<p class="p1"><span class="s1">                const exampleSentence = desc.example(conjugated[0]); // conjugated[0] es la forma 'yo'</span></p>
+<p class="p1"><span class="s1">                htmlContent += createConjugationTableHTML(desc.title, pronouns.indicative, conjugated, desc.description, exampleSentence);</span></p>
+<p class="p1"><span class="s1">            });</span></p>
+<p class="p1"><span class="s1">             htmlContent += `&lt;/div&gt;&lt;/div&gt;`;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">            // -- MODO IMPERATIVO --</span></p>
+<p class="p1"><span class="s1">            htmlContent += `&lt;div class="mb-6"&gt;&lt;h3 class="text-xl font-bold text-center text-gray-600 mb-4 pb-2 border-b border-gray-300"&gt;Modo Imperativo&lt;/h3&gt;&lt;div class="space-y-6"&gt;`;</span></p>
+<p class="p1"><span class="s1">            // Afirmativo</span></p>
+<p class="p1"><span class="s1">            const imperativeAffirmative = conjugate(stem, verbEndings.imperativoAfirmativo);</span></p>
+<p class="p1"><span class="s1">            const descAff = descriptions.imperativoAfirmativo;</span></p>
+<p class="p1"><span class="s1">            // Usar la segunda persona (tú) para el ejemplo del imperativo afirmativo</span></p>
+<p class="p1"><span class="s1">            const exampleAff = descAff.example(imperativeAffirmative[0]); // imperativeAffirmative[0] es la forma 'tú'</span></p>
+<p class="p1"><span class="s1">            htmlContent += createConjugationTableHTML(descAff.title, pronouns.imperative, imperativeAffirmative, descAff.description, exampleAff);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">            // Negativo</span></p>
+<p class="p1"><span class="s1">            // Conjugar primero las formas base (subjuntivo presente para negativo)</span></p>
+<p class="p1"><span class="s1">            const imperativeNegativeBase = conjugate(stem, verbEndings.imperativoNegativo);</span></p>
+<p class="p1"><span class="s1">            // Añadir "no" delante de cada forma para la tabla</span></p>
+<p class="p1"><span class="s1">            const imperativeNegativeTable = imperativeNegativeBase.map(form =&gt; `no ${form}`);</span></p>
+<p class="p1"><span class="s1">            const descNeg = descriptions.imperativoNegativo;</span></p>
+<p class="p1"><span class="s1">             // Usar la segunda persona base (tú, sin "no") para el ejemplo del imperativo negativo</span></p>
+<p class="p1"><span class="s1">            const exampleNeg = descNeg.example(imperativeNegativeBase[0]); // imperativeNegativeBase[0] es la forma 'tú' del subjuntivo presente</span></p>
+<p class="p1"><span class="s1">            htmlContent += createConjugationTableHTML(descNeg.title, pronouns.imperative, imperativeNegativeTable, descNeg.description, exampleNeg);</span></p>
+<p class="p1"><span class="s1">            htmlContent += `&lt;/div&gt;&lt;/div&gt;`;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">            // -- FORMAS NO PERSONALES --</span></p>
+<p class="p1"><span class="s1">             htmlContent += `&lt;div class="mb-6"&gt;&lt;h3 class="text-xl font-bold text-center text-gray-600 mb-4 pb-2 border-b border-gray-300"&gt;Formas no Personales&lt;/h3&gt;&lt;div class="space-y-6"&gt;`;</span></p>
+<p class="p1"><span class="s1">            const gerund = stem + verbEndings.gerundio;</span></p>
+<p class="p1"><span class="s1">            const participle = stem + verbEndings.participio;</span></p>
+<p class="p1"><span class="s1">            htmlContent += createNonPersonalFormsHTML(verb, gerund, participle);</span></p>
+<p class="p1"><span class="s1">            htmlContent += `&lt;/div&gt;&lt;/div&gt;`;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">            resultsArea.innerHTML = htmlContent;</span></p>
+<p class="p1"><span class="s1">        }</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">        // --- Event Listeners ---</span></p>
+<p class="p1"><span class="s1">        conjugateButton.addEventListener('click', displayConjugations);</span></p>
+<p class="p1"><span class="s1">        // Permite conjugar presionando Enter en el input</span></p>
+<p class="p1"><span class="s1">        verbInput.addEventListener('keypress', function(event) {</span></p>
+<p class="p1"><span class="s1">            if (event.key === 'Enter') {</span></p>
+<p class="p1"><span class="s1">                displayConjugations();</span></p>
+<p class="p1"><span class="s1">            }</span></p>
+<p class="p1"><span class="s1">        });</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">    &lt;/script&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">&lt;/body&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/html&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p2"><span class="s1"></span><br></p>
 </body>
 </html>
